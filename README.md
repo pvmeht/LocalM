@@ -22,18 +22,18 @@ This project sets up a small language model (SLM) locally on Windows 11 using `l
 ### 1. Create and Activate Virtual Environment
 Open Command Prompt (CMD) and run:
 
-cd F:\Codes\LocalM
-pyenv local 3.12.6
-python -m venv venv
-venv\Scripts\activate
+    cd F:\Codes\LocalM
+    pyenv local 3.12.6
+    python -m venv venv
+    venv\Scripts\activate
 
 ### 2. Install Dependencies
    pip install llama-cpp-python langchain langchain-community pypdf docx2txt sentence-transformers chromadb
 
-# For GPU support, reinstall llama-cpp-python with CUDA:
+### For GPU support, reinstall llama-cpp-python with CUDA:
 
-pip uninstall llama-cpp-python -y
-pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python-cuBLAS-wheels/ --force-reinstall
+    pip uninstall llama-cpp-python -y
+    pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python-cuBLAS-wheels/ --force-reinstall
 
 
 ### 3. Install CUDA Toolkit and cuDNN (Optional for GPU)
