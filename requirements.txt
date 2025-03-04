@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+watchdog
+torch
+torchvision
+transformers
+pillow
+python-multipart
+langchain-huggingface
+langchain-community
+llama-cpp-python

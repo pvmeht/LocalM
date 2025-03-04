@@ -1,0 +1,34 @@
+Name: Anuj Singh
+Age: 22 years old
+Current Position: Software Engineer
+Current Employer: L&T
+Previous Position: Support Engineer
+Skills: Java, Spring Boot, SQL, Problem Solving
+Hobbies: Coding, Riding Bikes, Travelling, Photography
+Favorite Bike: Java42 (Bike Model)
+
+Experience:
+
+Software Engineer
+
+Company: LTIMindtree
+Duration: Present
+Responsibilities:
+Developing software solutions using Java.
+Working on backend and database management.
+Collaborating with cross-functional teams.
+Optimizing code performance.
+Writing unit tests and ensuring software quality.
+Support Engineer
+
+Company: (Previous Employer)
+Duration: (Time Period)
+Responsibilities:
+Providing technical support to end-users.
+Troubleshooting software and hardware issues.
+Assisting in the setup and configuration of systems.
+Maintaining detailed documentation for support processes.
+Personal Information:
+
+Bike: Java42 (A custom or a personal favorite bike model, could be fictitious or a unique design choice)
+Location: (Location if needed, e.g., Pune, India)
