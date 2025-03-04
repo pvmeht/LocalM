@@ -75,8 +75,8 @@ This version adds Swagger UI for a simple, interactive API interface:
     venv\Scripts\activate
     python rag_pipeline.py
 
-=========================================================================================
-=========================================================================================
+=====================================================================================
+=====================================================================================
 
 # V2 changes 
 
@@ -100,4 +100,5 @@ This version adds Swagger UI for a simple, interactive API interface:
   pip install -r requirements.txt
 
 ### Run
-  python app.py
+  PS F:\Codes\LocalM> cd ..       
+  PS F:\Codes> python -m LocalM.app 
