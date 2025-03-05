@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langchain-chroma
+chromadb
+ctransformers
+torch
+transformers
+PyPDF2
+python-docx
+pillow
+pydantic
+huggingface-hub
+sentence-transformers
+python-multipart
+llama-cpp-python
