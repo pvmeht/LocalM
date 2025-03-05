@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langchain-huggingface
+llama-cpp-python
+pypdf
+docx2txt
+sentence-transformers
+chromadb
+transformers
+torch
+torchvision
+pillow
+accelerate
