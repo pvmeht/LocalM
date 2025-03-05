@@ -43,3 +43,13 @@ def load_blip2():
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
     return processor, model
+
+# def load_blip2():
+#     from transformers import Blip2Processor, Blip2ForConditionalGeneration
+#     import torch
+#     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+#     model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
+#     if torch.cuda.is_available():
+#         model = model.to("cuda")
+#         print("BLIP-2 loaded on GPU.")
+#     return processor, model 
