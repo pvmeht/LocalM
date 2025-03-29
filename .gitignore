@@ -1,0 +1,11 @@
+# Ignore chroma_db folder
+chroma_db/
+
+# Ignore venv folder
+venv/
+
+# Ignore models folder
+models/
+
+# Ignore pycache folder
+__pycache__/
