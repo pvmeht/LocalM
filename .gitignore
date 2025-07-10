@@ -2,7 +2,7 @@
 chroma_db/
 
 # Ignore venv folder
-venv/
+ai_app_env/
 
 # Ignore models folder
 models/
