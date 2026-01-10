@@ -731,7 +731,7 @@ if os.path.exists(INDEX_FILE) and os.path.exists(DOCS_FILE):
 def rag_answer(user_id: str, question: str) -> str:
     if user_id not in user_indices or not user_documents.get(user_id):
         return f"No documents uploaded for user '{user_id}'. Please upload a file first."
-    
+     
     q_embedding = encoder.encode([question], normalize_embeddings=True)  # Normalize for cosine
     q_embedding = np.array(q_embedding, dtype=np.float32)  # Ensure float32
     
@@ -790,22 +790,21 @@ async def qa_endpoint(
 
 
 
-
 @app.post("/rag")
 async def rag_endpoint(
     question: str = Query(..., description="Question for RAG"),
     mode: Optional[Literal["generate", "extract", "hybrid", "auto"]] = Query(
-        "hybrid",  # NEW DEFAULT: Best of both worlds!
+        "hybrid",  # Default remains hybrid
         description="Mode: 'generate' (AI only), 'extract' (raw text), 'hybrid' (extract → AI summarize), 'auto' (old intent detection)"
     ),
-    k: int = Query(5, ge=1, le=10, description="Number of chunks to retrieve (increase for better coverage)"),
+    k: int = Query(5, ge=1, le=10, description="Number of chunks to retrieve"),
     raw: bool = Query(False, description="Return raw context for debugging")
 ):
     try:
         if DEFAULT_USER not in user_indices or not user_documents.get(DEFAULT_USER):
             raise HTTPException(status_code=404, detail="No document uploaded yet. Please use /upload first.")
 
-        # === Retrieval: Use higher k for better coverage ===
+        # === Retrieval ===
         q_embedding = encoder.encode([question], normalize_embeddings=True)
         q_embedding = np.array(q_embedding, dtype=np.float32)
 
@@ -823,6 +822,7 @@ async def rag_endpoint(
 
         full_context = "\n\n".join(chunk for _, chunk in relevant_chunks)
         logger.info(f"Retrieved {len(relevant_chunks)} chunks, top similarity: {distances[0][0]:.3f}")
+        logger.debug(f"Full retrieved context (first 1500 chars):\n{full_context[:1500]}...")  # For debugging
 
         if raw:
             return {
@@ -833,29 +833,48 @@ async def rag_endpoint(
                 "similarities": [float(d) for d, _ in relevant_chunks]
             }
 
-        # === EXTRACT MODE: Raw limited text ===
+        # === EXTRACT MODE ===
         if mode == "extract":
             extracted = full_context.strip()
             if len(extracted) > 700:
-                # Cut mid-word for "incomplete" feel
                 extracted = extracted[:700].rsplit(' ', 1)[0] + "..."
             return {"mode": "extract", "answer": extracted}
 
-        # === HYBRID MODE: Extract → Feed to AI for clean answer ===
+        # === HYBRID MODE ===
         elif mode == "hybrid" or mode == "auto":
-            # Step 1: Get clean extracted text (full, not limited)
             extracted_context = full_context.strip()
 
-            # Step 2: Ask AI to generate structured answer using ONLY this real text
+            # === STRONGER PROMPT – Forces focus and no unrelated info ===
             structured_prompt = (
-                "Using ONLY the following text from the resume, answer the question clearly and accurately. "
-                "Extract and format the relevant information. Do not add anything not present.\n\n"
+                "You are an expert at extracting precise information from resume text. "
+                "Answer the question using ONLY the provided resume text. "
+                "Focus ONLY on information directly related to the question. "
+                "Ignore all unrelated information from other people or sections. "
+                "Be concise, direct, and accurate. Format the answer clearly.\n\n"
                 f"Resume Text:\n{extracted_context}\n\n"
                 f"Question: {question}\n\n"
                 "Answer:"
             )
 
-            hybrid_answer = answer_question(structured_prompt, extracted_context)  # Reuse your qa.py function
+            hybrid_answer = answer_question(structured_prompt, extracted_context)
+
+            # === CLEANUP: Keep only relevant parts (e.g., lines with the target email) ===
+            hybrid_answer = hybrid_answer.strip()
+            if "email" in question.lower():
+                # Extract email from question
+                email_match = re.search(r'[\w\.-]+@[\w\.-]+', question)
+                if email_match:
+                    target_email = email_match.group(0)
+                    # Keep only lines containing this email
+                    lines = [line for line in hybrid_answer.split('\n') 
+                             if target_email in line or "email" in line.lower()]
+                    if lines:
+                        hybrid_answer = "\n".join(lines).strip()
+                    else:
+                        hybrid_answer = f"The email {target_email} belongs to the candidate in the resume."
+
+            # Remove unwanted prefixes
+            hybrid_answer = re.sub(r'^(Extracted from resume:|Answer:)\s*', '', hybrid_answer, flags=re.I).strip()
 
             return {
                 "mode": "hybrid",
@@ -865,7 +884,7 @@ async def rag_endpoint(
                 "top_similarity": float(distances[0][0])
             }
 
-        # === GENERATE MODE: Old way (direct AI on retrieved context) ===
+        # === GENERATE MODE ===
         else:
             answer = answer_question(question, full_context)
             return {
@@ -877,9 +896,6 @@ async def rag_endpoint(
     except Exception as e:
         logger.error(f"RAG error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"RAG processing failed: {str(e)}")
-
-
-
 
 
 
@@ -908,26 +924,25 @@ async def upload_file(
         chunks = process_file(file_path)
         logger.info(f"Extracted {len(chunks)} chunks from {file.filename}")
         
-        if isinstance(chunks, list) and chunks:
+        if chunks:
             embeddings = encoder.encode(chunks, normalize_embeddings=True)
             embeddings = np.array(embeddings, dtype=np.float32)
             dim = embeddings.shape[1]
-            
-            # Create or reset index
+
             if DEFAULT_USER not in user_indices:
                 user_indices[DEFAULT_USER] = faiss.IndexFlatIP(dim)
-            else:
-                user_indices[DEFAULT_USER].reset()
+                user_documents[DEFAULT_USER] = []
             
+            # Append – do NOT reset!
             user_indices[DEFAULT_USER].add(embeddings)
-            user_documents[DEFAULT_USER] = chunks
-            
-            # === NEW: Save to disk ===
+            user_documents[DEFAULT_USER].extend(chunks)  # append new chunks
+
+            # Save updated state
             faiss.write_index(user_indices[DEFAULT_USER], INDEX_FILE)
             with open(DOCS_FILE, "wb") as f:
-                pickle.dump(chunks, f)
-            
-            logger.info(f"Indexed and SAVED {len(chunks)} chunks to disk for {DEFAULT_USER}")
+                pickle.dump(user_documents[DEFAULT_USER], f)
+
+            logger.info(f"Appended {len(chunks)} new chunks. Total now: {len(user_documents[DEFAULT_USER])}")
         else:
             # Clear saved files if no chunks
             if os.path.exists(INDEX_FILE):

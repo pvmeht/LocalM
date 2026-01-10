@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__)
 # Load FLAN-T5-Large (768M params — smarter, faithful to context)
 try:    
     tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
-    model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map="auto")
+    model = T5ForConditionalGeneration.from_pretrained(
+        "google/flan-t5-large",
+        device_map="auto",
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+    )
+    logger.info("Successfully loaded google/flan-t5-large")
     logger.info("Loaded flan-t5-large for faithful QA")
     IS_T5 = True
 except Exception as e:
@@ -21,16 +26,23 @@ except Exception as e:
         model.config.pad_token_id = model.config.eos_token_id
     IS_T5 = False
 
-def answer_question(question: str, context: str) -> str:
+def answer_question(question: str, context: str, similarity: float = None) -> str:
+    # Pass similarity from rag endpoint if you want strict check
+    if similarity is not None and similarity < 0.20:
+        return "Not enough information in the resume"
+    
     """
     Generate faithful answer using context only.
     """
     # Anti-hallucination prompt: Strictly instruct to use context only
+    # Inside hybrid mode prompt generation (in main.py or rag_answer)
     prompt = (
-        "Answer the question using ONLY the information from the provided context. "
-        "Do not add any external knowledge or make up details. "
-        "If the context does not have enough information, say 'Not enough information in the resume.'\n\n"
-        f"Context: {context}\n\n"
+        "You are an expert at extracting precise information from resume text. "
+        "Answer the question using ONLY the provided resume text. "
+        "Focus ONLY on the information directly related to the question. "
+        "Do NOT include unrelated information from other parts of the resume. "
+        "Be concise and direct. Format the answer clearly.\n\n"
+        f"Resume Text:\n{context}\n\n"
         f"Question: {question}\n\n"
         "Answer:"
     )
